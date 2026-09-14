@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.utils import flt, getdate
 from datetime import datetime
 import math
@@ -100,21 +101,31 @@ def calculate_tarif_pajak_ter(golongan, brutto_gaji, month ,year, employee, year
 
 			pph21 = calculate_pajak(ptkp, use_npwp)
 
-			get_pph21_ter_per_11 = frappe.db.sql("""
-				SELECT 
-					SUM(sd.amount)
-				FROM 
-					`tabSalary Detail` sd
-				LEFT JOIN
-					`tabSalary Slip` sp ON sd.parent = sp.name
-				WHERE
-					sp.employee = '{0}' AND sd.salary_component = 'PPH21 TER' 
-				AND sp.end_date <= "{1}-11-30" and sp.end_date> "{1}-01-01" and sp.docstatus=1
-			""".format(employee, year), as_list=1)
+			# komponen PPh21 TER berbeda per Salary Structure, jadi akumulasi
+			# Jan-Nov dijumlah dari semua komponen TER yang terdaftar
+			komponen_ter = get_semua_komponen_pph21_ter()
 
 			pph_done=0
-			for row in get_pph21_ter_per_11:
-				pph_done=flt(row[0])
+			if komponen_ter:
+				get_pph21_ter_per_11 = frappe.db.sql("""
+					SELECT
+						SUM(sd.amount)
+					FROM
+						`tabSalary Detail` sd
+					LEFT JOIN
+						`tabSalary Slip` sp ON sd.parent = sp.name
+					WHERE
+						sp.employee = %(employee)s AND sd.salary_component IN %(komponen)s
+					AND sp.end_date <= %(akhir)s and sp.end_date> %(awal)s and sp.docstatus=1
+				""", {
+					"employee": employee,
+					"komponen": komponen_ter,
+					"akhir": "{}-11-30".format(year),
+					"awal": "{}-01-01".format(year),
+				}, as_list=1)
+
+				for row in get_pph21_ter_per_11:
+					pph_done=flt(row[0])
 
 			if pph21:
 				pph21_ter_version = pph21-pph_done
@@ -123,28 +134,43 @@ def calculate_tarif_pajak_ter(golongan, brutto_gaji, month ,year, employee, year
 
     # pph_21_ter = calculate_tarif_pajak_ter(emp['pkp_status'], flt(row.total_brutto+(row.bonus or 0)), self.month, row.pph_ytd)
 
-def create_salary_component_pph21_ter_gross_up():
-	if(not frappe.db.exists("Salary Component", "PPH21 TER Gross Up")):
-		doc = frappe.new_doc("Salary Component")
-		doc.salary_component = "PPH21 TER Gross Up"
-		doc.salary_component_abbr = "pphtergu"
-		doc.type = "Earning"
-		doc.depends_on_payment_days = 1
-		doc.is_tax_applicable = 0		
+def get_komponen_pph21_ter(salary_structure):
+	"""Komponen PPh21 TER dipisah per Salary Structure.
 
-		doc.save()
-		frappe.db.commit()
+	Mengembalikan (komponen deduction, komponen earning gross up).
+	"""
+	if not salary_structure:
+		return None, None
 
-def create_salary_component_pph21_ter():
-	if(not frappe.db.exists("Salary Component", "PPH21 TER")):
-		doc = frappe.new_doc("Salary Component")
-		doc.salary_component = "PPH21 TER"
-		doc.salary_component_abbr = "pphter"
-		doc.type = "Deduction"
-		doc.depends_on_payment_days = 0
+	komponen = frappe.db.get_value(
+		"Salary Structure",
+		salary_structure,
+		["pph21_ter_component", "pph21_ter_gross_up_component"],
+		as_dict=True,
+	) or {}
 
-		doc.save()
-		frappe.db.commit()
+	return komponen.get("pph21_ter_component"), komponen.get("pph21_ter_gross_up_component")
+
+def get_semua_komponen_pph21_ter():
+	"""Semua komponen deduction PPh21 TER yang terdaftar di Salary Structure."""
+	komponen = frappe.get_all(
+		"Salary Structure",
+		filters={"pph21_ter_component": ["is", "set"]},
+		pluck="pph21_ter_component",
+	)
+
+	return list(set(komponen))
+
+def set_komponen_salary_slip(doc, komponen, component_type, amount):
+	"""Pasang nilai komponen ke Salary Slip lewat method bawaan Salary Slip.
+
+	Method ini yang mengisi abbr, is_tax_applicable, depends_on_payment_days,
+	default_amount, dan membuang baris yang bernilai 0.
+	"""
+	if not komponen:
+		return
+
+	doc.add_component_custom(komponen, component_type, flt(amount))
 
 def debug_pph21():
 	doc = frappe.get_doc("Salary Slip","Sal Slip/HR-EMP-00906/00001")
@@ -166,38 +192,28 @@ def calculate_tax(self, method):
 	# bruto_gaji = sum(item['amount'] for item in self.earnings if item['is_tax_applicable'] == 1)
 
 	if(not self.pkp_status):
-		return 
+		return
+
+	komponen_ter, komponen_gross_up = get_komponen_pph21_ter(self.salary_structure)
+	if(not komponen_ter):
+		frappe.throw(_("Komponen PPh21 TER belum diisi di Salary Structure {0}").format(self.salary_structure))
 
 	nominal_pph21_ter = calculate_tarif_pajak_ter(self.pkp_status, bruto_gaji, month_int,year_int, self.employee, self.year_to_date, self, self.npwp != "")	
 
 	print(nominal_pph21_ter)
+
 	# GROSS UP PPH21
 	is_gross_up = frappe.get_value("Salary Structure Assignment", {"employee":self.employee, "salary_structure":self.salary_structure}, "pph_21_gross_up")
 	if(is_gross_up):
-		check_alredy_salary_component_pph21_earnings = any(d.get("salary_component") == 'PPH21 TER Gross Up' for d in self.earnings)
-		if(not check_alredy_salary_component_pph21_earnings):
-			create_salary_component_pph21_ter_gross_up()
-			self.append("earnings", {
-				"salary_component": "PPH21 TER Gross Up",
-				"amount": 0
-			})
-		if(self.earnings):
-			for i in self.earnings:
-				if i.salary_component == 'PPH21 TER Gross Up':
-					i.amount = nominal_pph21_ter
+		if(not komponen_gross_up):
+			frappe.throw(_("Komponen PPh21 TER Gross Up belum diisi di Salary Structure {0}").format(self.salary_structure))
 
-	
-	check_alredy_salary_component_pph21 = any(d.get("salary_component") == 'PPH21 TER' for d in self.deductions)
-	if(not check_alredy_salary_component_pph21):
-		create_salary_component_pph21_ter()
-		self.append("deductions", {
-			"salary_component": "PPH21 TER",
-			"amount": 0
-		})
-	if(self.deductions):
-		for i in self.deductions:
-			if i.salary_component == 'PPH21 TER':
-				i.amount = nominal_pph21_ter
+		set_komponen_salary_slip(self, komponen_gross_up, "earnings", nominal_pph21_ter)
+	elif komponen_gross_up:
+		# gross up dimatikan, baris earning-nya dibuang
+		set_komponen_salary_slip(self, komponen_gross_up, "earnings", 0)
+
+	set_komponen_salary_slip(self, komponen_ter, "deductions", nominal_pph21_ter)
 	
 	# self.set_totals()
 	
