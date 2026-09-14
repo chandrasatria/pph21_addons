@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:description",
+ "creation": "2026-03-06 15:20:39.118302",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "description",
+  "percent",
+  "column_break_heag",
+  "from_amount",
+  "to_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description",
+   "unique": 1
+  },
+  {
+   "fieldname": "to_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "To Amount"
+  },
+  {
+   "fieldname": "column_break_heag",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "percent",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Percent"
+  },
+  {
+   "fieldname": "from_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "From Amount"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-09 10:53:11.780341",
+ "modified_by": "Administrator",
+ "module": "PPH21 TER ADDONS",
+ "name": "PPh21 Pesangon Layer",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -23,16 +23,16 @@ def calculate_pajak(pkp, use_npwp=True):
 	pajak = 0
 	pkp = math.floor(pkp/1000) * 1000
 	if pkp != 0:
-		if pkp <= 60000000:
+		if pkp <= 60_000_000:
 			pajak = pkp * 0.05
 		else:
-			if pkp <= 250000000:
-				pajak = 3000000 + ((pkp - 60000000) * 0.15)
+			if pkp <= 250_000_000:
+				pajak = 3_000_000 + ((pkp - 60_000_000) * 0.15)
 			else:
-				if pkp <= 500000000:
-					pajak = 31500000 + ((pkp - 250000000) * 0.25)
+				if pkp <= 500_000_000:
+					pajak = 31_500_000 + ((pkp - 250_000_000) * 0.25)
 				else:
-					pajak = 94000000 + ((pkp - 500000000) * 0.3)
+					pajak = 94_000_000 + ((pkp - 500_000_000) * 0.3)
 
 			# frappe.msgprint("pajak 3: {}".format(pajak))
 	else:
@@ -40,6 +40,7 @@ def calculate_pajak(pkp, use_npwp=True):
 	return math.ceil(pajak) if use_npwp else math.ceil(pajak)*1.2
 
 def calculate_tarif_pajak_ter(golongan, brutto_gaji, month ,year, employee, year_to_date, doc, use_npwp=True):
+	print(brutto_gaji)
 	get_data_tarif = frappe.db.sql("""
 		SELECT
 			dter.tarif_pajak
@@ -57,8 +58,36 @@ def calculate_tarif_pajak_ter(golongan, brutto_gaji, month ,year, employee, year
 		LIMIT 1
 	""".format(golongan, brutto_gaji, brutto_gaji), as_dict=1)
 
+	list_get_data_tarif = frappe.db.sql("""
+		SELECT
+			dter.tarif_pajak, dter.batas_bawah, dter.batas_atas
+		FROM `tabDetail TER` dter
+		WHERE 
+			dter.parent in (
+				SELECT
+					dgolter.parent 
+				FROM `tabDetail Golongan TER` dgolter
+				WHERE 
+					dgolter.status_golongan = '{}'
+			)
+	""".format(golongan, brutto_gaji, brutto_gaji), as_dict=1)
+	
+	tarif_pajak = get_data_tarif[0]['tarif_pajak']
+
 	if(get_data_tarif and get_data_tarif[0]):
-		pph21_ter_version = flt(brutto_gaji*(get_data_tarif[0]['tarif_pajak']/100))
+		pph21_ter_version = round(flt(brutto_gaji*(get_data_tarif[0]['tarif_pajak']/100) / ((100-get_data_tarif[0]['tarif_pajak'])/100)))
+
+		bruto_baru = brutto_gaji + pph21_ter_version
+		# perlu cek apakah ini luber ke tier berikutnya
+		for row in list_get_data_tarif:
+			if row.batas_bawah <= bruto_baru <= row.batas_atas:
+				# cek tarif seharusnya
+				if get_data_tarif[0]['tarif_pajak'] != row.tarif_pajak:
+					# ini jadinya luber
+					tarif_pajak = row.tarif_pajak
+					pph21_ter_version = round(flt(brutto_gaji*(tarif_pajak/100) / ((100-tarif_pajak)/100)))
+
+					print(pph21_ter_version)
 
 		if (12 - month)==0:
 			is_biaya_jabatan_akhir_tahun = frappe.get_value("Salary Structure Assignment", {"employee": doc.employee, "salary_structure":doc.salary_structure}, "biaya_jabatan_akhir_tahun")
@@ -86,7 +115,9 @@ def calculate_tarif_pajak_ter(golongan, brutto_gaji, month ,year, employee, year
 			pph_done=0
 			for row in get_pph21_ter_per_11:
 				pph_done=flt(row[0])
-			pph21_ter_version = pph21-pph_done
+
+			if pph21:
+				pph21_ter_version = pph21-pph_done
 
 		return pph21_ter_version if use_npwp else pph21_ter_version*1.2
 
@@ -115,7 +146,15 @@ def create_salary_component_pph21_ter():
 		doc.save()
 		frappe.db.commit()
 
+def debug_pph21():
+	doc = frappe.get_doc("Salary Slip","Sal Slip/HR-EMP-00906/00001")
+	calculate_tax(doc,"validate")
+
 def calculate_tax(self, method):
+
+	if getattr(self, "tipe_salary", None) == "Pesangon":
+		return
+
 	date_obj = getdate(self.end_date)
 	month_int = date_obj.month
 	year_int=date_obj.year
@@ -131,6 +170,7 @@ def calculate_tax(self, method):
 
 	nominal_pph21_ter = calculate_tarif_pajak_ter(self.pkp_status, bruto_gaji, month_int,year_int, self.employee, self.year_to_date, self, self.npwp != "")	
 
+	print(nominal_pph21_ter)
 	# GROSS UP PPH21
 	is_gross_up = frappe.get_value("Salary Structure Assignment", {"employee":self.employee, "salary_structure":self.salary_structure}, "pph_21_gross_up")
 	if(is_gross_up):
@@ -162,25 +202,25 @@ def calculate_tax(self, method):
 	# self.set_totals()
 	
 
-	self.gross_pay = 0.0
-	if self.salary_slip_based_on_timesheet == 1:
-		self.calculate_total_for_salary_slip_based_on_timesheet()
-	else:
-		self.total_deduction = 0.0
-		if hasattr(self, "earnings"):
-			for earning in self.earnings:
-				if earning.do_not_include_in_total == 0:
-					self.gross_pay += flt(earning.amount, earning.precision("amount"))
+	# self.gross_pay = 0.0
+	# if self.salary_slip_based_on_timesheet == 1:
+	# 	self.calculate_total_for_salary_slip_based_on_timesheet()
+	# else:
+	# 	self.total_deduction = 0.0
+	# 	if hasattr(self, "earnings"):
+	# 		for earning in self.earnings:
+	# 			if earning.do_not_include_in_total == 0:
+	# 				self.gross_pay += flt(earning.amount, earning.precision("amount"))
 
-		if hasattr(self, "deductions"):
-			for deduction in self.deductions:
-				if deduction.do_not_include_in_total == 0:
-					self.total_deduction += flt(deduction.amount, deduction.precision("amount"))
+	# 	if hasattr(self, "deductions"):
+	# 		for deduction in self.deductions:
+	# 			if deduction.do_not_include_in_total == 0:
+	# 				self.total_deduction += flt(deduction.amount, deduction.precision("amount"))
 
-		self.net_pay = (
-			flt(self.gross_pay) - flt(self.total_deduction) - flt(self.get("total_loan_repayment"))
-		)
-	self.set_base_totals()
+	# 	self.net_pay = (
+	# 		flt(self.gross_pay) - flt(self.total_deduction) - flt(self.get("total_loan_repayment"))
+	# 	)
+	# self.set_base_totals()
 
 	# frappe.throw(str(nominal_pph21_ter))
 	# frappe.throw(str())

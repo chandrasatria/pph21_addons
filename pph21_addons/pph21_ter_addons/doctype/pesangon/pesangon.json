@@ -1,0 +1,184 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "PSG-.#####",
+ "creation": "2026-03-02 11:34:22.212671",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_sm3p",
+  "exit_interview",
+  "employee",
+  "employee_name",
+  "relieving_date",
+  "applicable_date",
+  "amended_from",
+  "column_break_zcfl",
+  "opsi_bayar",
+  "grand_total",
+  "pembayaran_pertama",
+  "jumlah_bulan_cicilan",
+  "pembayaran_per_bulan",
+  "outstanding_amount",
+  "total_pph21",
+  "section_break_udsv",
+  "pesangon_periode",
+  "section_break_wzwz",
+  "pph_21_detail"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_sm3p",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Pesangon",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "exit_interview",
+   "fieldtype": "Link",
+   "label": "Exit Interview",
+   "options": "Exit Interview"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Currency",
+   "label": "Outstanding Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_zcfl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Jumlah Pesangon",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "Langsung",
+   "fieldname": "opsi_bayar",
+   "fieldtype": "Select",
+   "label": "Opsi Bayar",
+   "options": "Langsung\nDicicil"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.opsi_bayar==\"Dicicil\"",
+   "fieldname": "jumlah_bulan_cicilan",
+   "fieldtype": "Int",
+   "label": "Jumlah Bulan Cicilan",
+   "mandatory_depends_on": "eval:doc.opsi_bayar==\"Dicicil\""
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.opsi_bayar==\"Dicicil\"",
+   "fieldname": "pembayaran_pertama",
+   "fieldtype": "Currency",
+   "label": "Pembayaran Pertama"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.opsi_bayar==\"Dicicil\"",
+   "fieldname": "pembayaran_per_bulan",
+   "fieldtype": "Currency",
+   "label": "Pembayaran Per Bulan",
+   "read_only": 1
+  },
+  {
+   "fieldname": "relieving_date",
+   "fieldtype": "Date",
+   "label": "Relieving Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "pesangon_periode",
+   "fieldtype": "Table",
+   "label": "Pesangon Periode",
+   "options": "Pesangon Periode",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_udsv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "applicable_date",
+   "fieldtype": "Date",
+   "label": "Applicable Date"
+  },
+  {
+   "fieldname": "section_break_wzwz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "pph_21_detail",
+   "fieldtype": "Table",
+   "label": "PPh 21 Detail",
+   "options": "PPH21 Pesangon Detail"
+  },
+  {
+   "fieldname": "total_pph21",
+   "fieldtype": "Currency",
+   "label": "Total PPh21",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-03-10 09:30:04.414130",
+ "modified_by": "Administrator",
+ "module": "PPH21 TER ADDONS",
+ "name": "Pesangon",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

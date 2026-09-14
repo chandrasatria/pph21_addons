@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-03 13:34:58.431600",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "periode",
+  "amount",
+  "is_paid",
+  "salary_slip"
+ ],
+ "fields": [
+  {
+   "fieldname": "periode",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Periode",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_paid",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Paid",
+   "read_only": 1
+  },
+  {
+   "fieldname": "salary_slip",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Salary Slip",
+   "options": "Salary Slip",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-03 14:02:34.332362",
+ "modified_by": "Administrator",
+ "module": "PPH21 TER ADDONS",
+ "name": "Pesangon Periode",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
